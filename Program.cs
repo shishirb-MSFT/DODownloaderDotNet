@@ -5,37 +5,9 @@ namespace DODownloader
 {
     internal class Program
     {
-        struct Options
-        {
-            public string Url;
-            public string OutputFilePath;
-            public DODownloadRanges DownloadRanges;
-            public bool IsStreamDownload => string.IsNullOrEmpty(OutputFilePath);
-
-            public void SetRangesIfEmpty()
-            {
-                if (DownloadRanges != null)
-                {
-                    return;
-                }
-
-                if (IsStreamDownload)
-                {
-                    // Streaming download requires a range to specified (upto and including Win11 22H2).
-                    // Range of offset = 0, length = max-uint64 indicates a full file range request.
-                    DownloadRanges = new DODownloadRanges(new[] { 0ul, ulong.MaxValue });
-                }
-                else
-                {
-                    // Full file download is indicated with empty/zero ranges object
-                    DownloadRanges = new DODownloadRanges();
-                }
-            }
-        }
-
         static int Main(string[] args)
         {
-            if (!TryParseArgs(args, out Options options))
+            if (!Options.TryParseArgs(args, out Options options))
             {
                 Console.WriteLine("Usage: DODownloader.exe --url <url> [--output-file-path <path>] [--ranges <offset0,length0,offset1,length1,...>]");
                 return 1;
@@ -90,53 +62,81 @@ namespace DODownloader
             return 0;
         }
 
-        private static bool TryParseArgs(string[] args, out Options options)
+        struct Options
         {
-            options = new Options();
-            for (int i = 0; i < args.Length; i++)
+            public string Url;
+            public string OutputFilePath;
+            public DODownloadRanges DownloadRanges;
+            public bool IsStreamDownload => string.IsNullOrEmpty(OutputFilePath);
+
+            public void SetRangesIfEmpty()
             {
-                if (args[i].Equals("--url"))
+                if (DownloadRanges != null)
                 {
-                    if ((i + 1) >= args.Length) return false;
-                    options.Url = args[++i];
+                    return;
                 }
-                else if (args[i].Equals("--output-file-path"))
+
+                if (IsStreamDownload)
                 {
-                    if ((i + 1) >= args.Length) return false;
-                    options.OutputFilePath = args[++i];
-                }
-                else if (args[i].Equals("--ranges"))
-                {
-                    if ((i + 1) >= args.Length) return false;
-                    try
-                    {
-                        options.DownloadRanges = ParseDownloadRanges(args[++i]);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error parsing ranges argument: {ex.Message}");
-                        return false;
-                    }
+                    // Streaming download requires a range to specified (upto and including Win11 22H2).
+                    // Range of offset = 0, length = max-uint64 indicates a full file range request.
+                    DownloadRanges = new DODownloadRanges(new[] { 0ul, ulong.MaxValue });
                 }
                 else
                 {
-                    Console.WriteLine($"Unknown cmdline option '{args[i]}'");
-                    return false;
+                    // Full file download is indicated with empty/zero ranges object
+                    DownloadRanges = new DODownloadRanges();
                 }
             }
-            return !string.IsNullOrEmpty(options.Url);
-        }
 
-        private static DODownloadRanges ParseDownloadRanges(string arg)
-        {
-            string[] offsetsAndLengths = arg.Split(',');
-            var offsetLengths = new ulong[offsetsAndLengths.Length];
-            int i = 0;
-            foreach (var val in offsetsAndLengths)
+            public static bool TryParseArgs(string[] args, out Options options)
             {
-                offsetLengths[i++] = Convert.ToUInt64(val);
+                options = new Options();
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i].Equals("--url"))
+                    {
+                        if ((i + 1) >= args.Length) return false;
+                        options.Url = args[++i];
+                    }
+                    else if (args[i].Equals("--output-file-path"))
+                    {
+                        if ((i + 1) >= args.Length) return false;
+                        options.OutputFilePath = args[++i];
+                    }
+                    else if (args[i].Equals("--ranges"))
+                    {
+                        if ((i + 1) >= args.Length) return false;
+                        try
+                        {
+                            options.DownloadRanges = ParseDownloadRanges(args[++i]);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error parsing ranges argument: {ex.Message}");
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Unknown cmdline option '{args[i]}'");
+                        return false;
+                    }
+                }
+                return !string.IsNullOrEmpty(options.Url);
             }
-            return new DODownloadRanges(offsetLengths);
+
+            private static DODownloadRanges ParseDownloadRanges(string arg)
+            {
+                string[] offsetsAndLengths = arg.Split(',');
+                var offsetLengths = new ulong[offsetsAndLengths.Length];
+                int i = 0;
+                foreach (var val in offsetsAndLengths)
+                {
+                    offsetLengths[i++] = Convert.ToUInt64(val);
+                }
+                return new DODownloadRanges(offsetLengths);
+            }
         }
     }
 }
