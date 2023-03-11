@@ -12,12 +12,24 @@ namespace DODownloader
     {
         private static void PrintUsage()
         {
-            Console.WriteLine("DODownloader.exe <url> <outputFilePath>");
+            Console.WriteLine("DODownloader.exe <url> <outputFilePath> [offset,length pairs]");
+        }
+
+        private static DODownloadRanges ParseDownloadRanges(string arg)
+        {
+            string[] offsetsAndLengths = arg.Split(',');
+            var offsetLengths = new ulong[offsetsAndLengths.Length];
+            int i = 0;
+            foreach (var val in offsetsAndLengths)
+            {
+                offsetLengths[i++] = Convert.ToUInt64(val);
+            }
+            return new DODownloadRanges(offsetLengths);
         }
 
         static int Main(string[] args)
         {
-            if (args.Length != 2)
+            if ((args.Length != 2) && (args.Length != 3))
             {
                 PrintUsage();
                 return 1;
@@ -25,16 +37,23 @@ namespace DODownloader
 
             string url = args[0];
             string outputFilePath = args[1];
+            if (File.Exists(outputFilePath))
+            {
+                File.Delete(outputFilePath);
+            }
 
+            // Partial or full file download?
+            DODownloadRanges downloadRanges = (args.Length == 3) ?
+                ParseDownloadRanges(args[2]) : new DODownloadRanges();
+
+            var factory = new DODownloadFactory(callerName: "DODownloader App");
             var file = new DOFile(url);
-            var download = new DODownload(file, "DODownloader App", outputFilePath);
+            var download = factory.CreateDownloadWithFileOutput(file, outputFilePath);
             download.SetForeground();
-            var callback = new DODownloadCallback(download.Id.ToString());
-            download.SetHandler(callback);
-            download.StartAndWaitUntilCompletion(60);
+            download.StartAndWaitUntilCompletion(downloadRanges, 60);
 
             var fileSize = new FileInfo(outputFilePath).Length;
-            Console.WriteLine($"Download completed, file of size {fileSize / 1048576.0}MB written to {outputFilePath}");
+            Console.WriteLine($"Download completed, file of size {fileSize} bytes written to {outputFilePath}");
 
             return 0;
         }

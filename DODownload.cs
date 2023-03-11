@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace DODownloader
@@ -8,23 +9,25 @@ namespace DODownloader
     /// </summary>
     internal class DODownload
     {
-        public DODownloadCallback Handler { get; private set; }
-
+        // COM object representing this download in DO client
         public IDODownload ClientDownload { get; private set; }
 
+        // Unique ID for this dowload in DO client
         public Guid Id { get; private set; }
-
+        
+        // Status callback receiver
+        public DODownloadCallback Handler { get; private set; }
+        
+        // The file that is being downloaded
         public DOFile File { get; private set; }
-        public string OutputFilePath { get; private set; }
 
-        public DODownload(DOFile file, string callerName, string outputFilePath)
+        public DODownload(DOFile file, IDODownload downloadObj)
         {
-            OutputFilePath = outputFilePath;
-            CommonInitNewDownload(file, callerName);
-            if (!string.IsNullOrEmpty(outputFilePath))
-            {
-                ClientDownload.SetProperty(DODownloadProperty.LocalPath, outputFilePath);
-            }
+            ClientDownload = downloadObj;
+            ClientDownload.GetProperty(DODownloadProperty.Id, out object valId);
+            Id = new Guid((string)valId);
+            File = file;
+            SetHandler(new DODownloadCallback((string)valId));
         }
 
         /// <summary>
@@ -36,64 +39,6 @@ namespace DODownloader
         //    fileData = new DownloadFileData(file, dataStream.DestFilePath);
         //    SetDataStream(dataStream);
         //}
-
-        /// <summary>
-        /// Use EnumDownloads to find the IDODownload by its ID and create a DODownload from
-        /// that IDODownload and the DOFile and local path specified.
-        /// </summary>
-        /// <param name="downloadId">Download ID to find</param>
-        /// <param name="file">DOFile that was used to create the original DODownload</param>
-        /// <param name="tempDestPath">Destination path that was used to create the original DODownload</param>
-        //public DODownload(Guid downloadId, DOFile file, string destPath)
-        //{
-        //    var enumDownloads = new EnumeratedDownloads(DODownloadProperty.Id, downloadId.ToString());
-        //    enumDownloads.VerifyCount(1);
-        //    enumDownloads.VerifyExists(DODownloadProperty.Id, downloadId.ToString());
-        //    enumDownloads.VerifyExists(DODownloadProperty.ContentId, file.FileID);
-        //    enumDownloads.VerifyExists(DODownloadProperty.LocalPath, destPath);
-
-        //    SetDownload(enumDownloads.At(0));
-        //    SetHandler(new DODownloadCallback(Id.ToString()));
-        //    fileData = new DownloadFileData(file, destPath);
-        //}
-
-        /// <summary>
-        /// Downloads the specified file to specified the path and returns a DODownload object
-        /// </summary>
-        /// <param name="file">DOFile object that specifies which file to download</param>
-        /// <param name="filePath">Destination path where the downloaded file must be written to</param>
-        /// <param name="completionTimeSecs">The time to complete the download</param>
-        /// <param name="isForeground">Whether the download is in foreground (faster)</param>
-        /// <returns>The download instance</returns>
-        public static DODownload DownloadFileToDestPath(DOFile file, string filePath, string callerName,
-            int completionTimeSecs = 5 * 60, bool isForeground = false)
-        {
-            var ranges = new DODownloadRanges();
-            return DownloadFileToDestPath(file, ranges, filePath, callerName, completionTimeSecs, isForeground);
-        }
-
-        /// <summary>
-        /// Downloads the specified partial file to specified the path and returns a DODownload object
-        /// </summary>
-        /// <param name="file"></param>
-        /// <param name="ranges"></param>
-        /// <param name="filePath"></param>
-        /// <param name="completionTimeSecs"></param>
-        /// <param name="isForeground"></param>
-        /// <returns></returns>
-        public static DODownload DownloadFileToDestPath(DOFile file, DODownloadRanges ranges, string filePath,
-            string callerName, int completionTimeSecs = 5 * 60, bool isForeground = false)
-        {
-            var download = new DODownload(file, callerName, filePath);
-            if (isForeground)
-            {
-                download.SetForeground();
-            }
-
-            download.Start(ranges);
-            download.WaitUntilCompletion(completionTimeSecs);
-            return download;
-        }
 
         public void SetCostFlags(DODownloadCostPolicy policy)
         {
@@ -110,25 +55,6 @@ namespace DODownloader
         {
             ClientDownload.SetProperty(DODownloadProperty.Uri, newUri);
         }
-
-        public void SetContentSize(UInt64 size)
-        {
-            ClientDownload.SetProperty(DODownloadProperty.TotalSizeBytes, size);
-        }
-
-        /// <summary>
-        /// Get decryption info from file data and give it to the download object.
-        /// </summary>
-        public void SetDecryptionInfo()
-        {
-            //ClientDownload.SetProperty(DODownloadProperty.DecryptionInfo, fileData.DOTestFile.DecryptionInfo());
-        }
-
-        //public void SetPhfInfo(IClientPhfInfo phfInfo)
-        //{
-        //    ClientDownload.SetProperty(DODownloadProperty.IntegrityCheckInfo, phfInfo.ToJsonString());
-        //    ClientDownload.SetProperty(DODownloadProperty.IntegrityCheckMandatory, phfInfo.IsIntegrityCheckMandatory);
-        //}
 
         /// <summary>
         /// Set ForegroundPriority to true. IDODownload defaults to background.
@@ -156,14 +82,6 @@ namespace DODownloader
         {
             return !IsForeground();
         }
-
-        //public void SetDataStream(ISequentialStream stream)
-        //{
-        //    // Without UnknownWrapper dosvc receives VT_DISPATCH and returns E_INVALIDARG.
-        //    // This isn't required when building in razzle (os.2020). The interop
-        //    // has InterfaceType "InterfaceIsIUnknown" which should be sufficient.
-        //    ClientDownload.SetProperty(DODownloadProperty.StreamInterface, (stream != null) ? new UnknownWrapper(stream) : null);
-        //}
 
         public void SetNoProgressTimeout(uint timeoutSecs)
         {
@@ -271,14 +189,6 @@ namespace DODownloader
             ClientDownload.Finalize2();
         }
 
-        /// <summary>
-        /// Finalizes the download and verifies the download is finalized and persisted
-        /// </summary>
-        public void FinalizeAndVerify()
-        {
-            Finalize2();
-        }
-
         public void StartAndWaitUntilCompletion(DODownloadRanges rangeInfo, int completionTimeSecs, bool finalize = true)
         {
             Start(rangeInfo);
@@ -364,55 +274,6 @@ namespace DODownloader
         public bool IsStatusExtendedError()
         {
             return (ExtendedErrorCode() != 0);
-        }
-
-        /// <summary>
-        /// Creates a DO Download and assigns a callback handler to it.
-        /// Also instantiates other private data members.
-        /// </summary>
-        private void CommonInitNewDownload(DOFile file, string callerName)
-        {
-            SetDownload(CreateDownload(callerName));
-            if (!string.IsNullOrEmpty(file.Id))
-            {
-                ClientDownload.SetProperty(DODownloadProperty.ContentId, file.Id);
-            }
-            ClientDownload.SetProperty(DODownloadProperty.Uri, file.Url);
-            //SetHandler(new DODownloadCallback(Id.ToString()));
-        }
-
-        private void SetDownload(IDODownload download, PInvoke.RPC_C_IMP impLevel = PInvoke.RPC_C_IMP.IMPERSONATE)
-        {
-            PInvoke.AllowImpersonation<IDODownload>(download, impLevel);
-            ClientDownload = download;
-            ClientDownload.GetProperty(DODownloadProperty.Id, out object valId);
-            Id = new Guid((string)valId);
-        }
-
-        private static IDODownload CreateDownload(string callerName)
-        {
-            IDODownload download = null;
-            IDOManager manager = null;
-            try
-            {
-                manager = CreateDOManager();
-                manager.CreateDownload(out download);
-            }
-            finally
-            {
-                if (manager != null)
-                {
-                    Marshal.FinalReleaseComObject(manager);
-                }
-            }
-            download.SetProperty(DODownloadProperty.DisplayName, callerName);
-            return download;
-        }
-
-        public static IDOManager CreateDOManager()
-        {
-            var manager = (IDOManager)PInvoke.GetComObject(Constants.CLSID_DOManager, Constants.IID_DOManager);
-            return manager;
         }
     }
 }
