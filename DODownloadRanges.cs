@@ -20,7 +20,7 @@ namespace DODownloader
         {
             if ((offsetLengthPairs.Length % 2) != 0)
             {
-                throw new ArgumentException("Expected even number of elements in offsetLengthPairs argument");
+                throw new ArgumentException("Expected even number of elements");
             }
 
             Collection = new DO_DOWNLOAD_RANGE[offsetLengthPairs.Length / 2];
@@ -30,29 +30,6 @@ namespace DODownloader
                 Collection[j].Offset = offsetLengthPairs[i];
                 Collection[j].Length = offsetLengthPairs[i + 1];
                 TotalLength += offsetLengthPairs[i + 1];
-            }
-        }
-
-        // {Offset, Length} specified via 2D array
-        public DODownloadRanges(ulong[,] offsetLengthPairs)
-        {
-            int numRanges = offsetLengthPairs.GetLength(0);
-            if (numRanges == 0)
-            {
-                throw new ArgumentException("Expected non-empty offsetLengthPairs argument");
-            }
-            if (offsetLengthPairs.GetLength(1) != 2)
-            {
-                throw new ArgumentException("Expected 2 columns in offsetLengthPairs argument");
-            }
-
-            Collection = new DO_DOWNLOAD_RANGE[numRanges];
-            TotalLength = 0;
-            for (int i = 0; i < numRanges; i++)
-            {
-                Collection[i].Offset = offsetLengthPairs[i, 0];
-                Collection[i].Length = offsetLengthPairs[i, 1];
-                TotalLength = offsetLengthPairs[i, 1];
             }
         }
 

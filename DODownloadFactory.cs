@@ -18,6 +18,17 @@ namespace DODownloader
             return new DODownload(file, downloadObj);
         }
 
+        public DODownload CreateDownloadWithStreamOutput(DOFile file, SequentialStreamReceiver dataStream)
+        {
+            var downloadObj = CreateDownload();
+            SetCommonProperties(downloadObj, file);
+
+            // Without UnknownWrapper dosvc receives VT_DISPATCH and returns E_INVALIDARG
+            downloadObj.SetProperty(DODownloadProperty.StreamInterface, new UnknownWrapper(dataStream));
+
+            return new DODownload(file, downloadObj);
+        }
+
         private IDODownload CreateDownload()
         {
             IDODownload download = null;

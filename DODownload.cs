@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace DODownloader
 {
     /// <summary>
-    /// Utility class provides easy way to manage a DO download. A download manages only one file.
+    /// Utility class provides to manage a DO download. A download manages only one file.
     /// </summary>
     internal class DODownload
     {
@@ -30,16 +30,6 @@ namespace DODownloader
             SetHandler(new DODownloadCallback((string)valId));
         }
 
-        /// <summary>
-        /// Creates a DO Download for a url and sets the stream interface
-        /// </summary>
-        //public DODownload(DOFile file, DataStreamReader dataStream, bool setNonVolatile = true)
-        //{
-        //    CommonInitNewDownload(file, setNonVolatile: setNonVolatile);
-        //    fileData = new DownloadFileData(file, dataStream.DestFilePath);
-        //    SetDataStream(dataStream);
-        //}
-
         public void SetCostFlags(DODownloadCostPolicy policy)
         {
             ClientDownload.SetProperty(DODownloadProperty.CostPolicy, (uint)policy);
@@ -57,7 +47,7 @@ namespace DODownloader
         }
 
         /// <summary>
-        /// Set ForegroundPriority to true. IDODownload defaults to background.
+        /// Set ForegroundPriority to true. Downloads default to background.
         /// </summary>
         public void SetForeground()
         {
@@ -65,7 +55,7 @@ namespace DODownloader
         }
 
         /// <summary>
-        /// Set ForegroundPriority to false. IDODownload defaults to background without an explicit property for it.
+        /// Set ForegroundPriority to false. Downloads default to background.
         /// </summary>
         public void SetBackground()
         {
@@ -88,11 +78,6 @@ namespace DODownloader
             ClientDownload.SetProperty(DODownloadProperty.NoProgressTimeoutSeconds, timeoutSecs);
         }
 
-        public void SetCorrelationVector(string cv)
-        {
-            ClientDownload.SetProperty(DODownloadProperty.CorrelationVector, cv);
-        }
-
         public uint GetNoProgressTimeout()
         {
             ClientDownload.GetProperty(DODownloadProperty.NoProgressTimeoutSeconds, out var val);
@@ -108,9 +93,7 @@ namespace DODownloader
         public void SetHandler(DODownloadCallback handler)
         {
             Handler = handler;
-            // Without UnknownWrapper dosvc receives VT_DISPATCH and returns E_INVALIDARG.
-            // This isn't required when building in razzle (os.2020). The interop
-            // has InterfaceType "InterfaceIsIUnknown" which should be sufficient.
+            // Without UnknownWrapper dosvc receives VT_DISPATCH and returns E_INVALIDARG
             ClientDownload.SetProperty(DODownloadProperty.CallbackInterface, (handler != null) ? new UnknownWrapper(handler) : null);
         }
 
@@ -183,28 +166,29 @@ namespace DODownloader
             ClientDownload.Abort();
         }
 
+        // 'Finalize' conflicts with destructor invocation, hence the '2' suffix
         public void Finalize2()
         {
             Console.WriteLine($"Download {Id}: finalizing");
             ClientDownload.Finalize2();
         }
 
-        public void StartAndWaitUntilCompletion(DODownloadRanges rangeInfo, int completionTimeSecs, bool finalize = true)
+        public void StartAndWaitUntilTransferred(DODownloadRanges rangeInfo, int completionTimeSecs)
         {
             Start(rangeInfo);
-            WaitUntilCompletion(completionTimeSecs, finalize);
+            WaitUntilTransferred(completionTimeSecs);
         }
 
-        public void StartAndWaitUntilCompletion(int completionTimeSecs, bool finalize = true)
+        public void StartAndWaitUntilTransferred(int completionTimeSecs)
         {
             Start();
-            WaitUntilCompletion(completionTimeSecs, finalize);
+            WaitUntilTransferred(completionTimeSecs);
         }
 
-        public void ResumeAndWaitUntilCompletion(int waitTimeSecs, bool finalize = true)
+        public void ResumeAndWaitUntilTransferred(int waitTimeSecs)
         {
             Resume();
-            WaitUntilCompletion(waitTimeSecs, finalize);
+            WaitUntilTransferred(waitTimeSecs);
         }
 
         public void StartAndWaitUntilTransferring(int waitTimeSecs = 15, DODownloadRanges rangeInfo = null)
@@ -212,16 +196,6 @@ namespace DODownloader
             var ranges = !DODownloadRanges.IsNullOrEmpty(rangeInfo) ? rangeInfo : new DODownloadRanges();
             Start(ranges);
             WaitUntilTransferring(waitTimeSecs);
-        }
-
-        public void WaitUntilCompletion(int completionTimeSecs, bool finalize = true)
-        {
-            Console.WriteLine($"Download {Id}: waiting until completion");
-            Handler.WaitForState(DODownloadState.Transferred, completionTimeSecs, this, new[] { DODownloadState.Paused });
-            if (finalize)
-            {
-                Finalize2();
-            }
         }
 
         /// <summary>

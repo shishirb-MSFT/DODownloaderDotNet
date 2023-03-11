@@ -50,9 +50,11 @@
     <Compile Include="DODownloadRanges.cs" />
     <Compile Include="DOFile.cs" />
     <Compile Include="InteropDODownload.cs" />
+    <Compile Include="InteropStream.cs" />
     <Compile Include="PInvoke.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SequentialDataStream.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

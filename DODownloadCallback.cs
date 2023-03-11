@@ -12,10 +12,7 @@ namespace DODownloader
         public int CountDownloadCompletes { get; private set; }
         public int CountDownloadErrors { get; private set; }
         public int CountDownloadExtendedErrors { get; private set; }
-        public List<int> CallbackFreqPcts { get; private set; }
-        public List<int> CallbackFreqSeconds { get; private set; }
 
-        public IDODownload LastDownloadObj { get; private set; }
         private DO_DOWNLOAD_STATUS LastDownloadStatus;
 
         private AutoResetEvent statusChangeEvent;
@@ -28,8 +25,6 @@ namespace DODownloader
         {
             this.downloadId = downloadId;
             stateLock = new object();
-            CallbackFreqPcts = new List<int>();
-            CallbackFreqSeconds = new List<int>();
             statusChangeEvent = new AutoResetEvent(false);
             Reset();
         }
@@ -85,12 +80,6 @@ namespace DODownloader
 
                     case DODownloadState.Transferred:
                         ++CountDownloadCompletes;
-                        break;
-
-                    case DODownloadState.Transferring:
-                        int pct = status.BytesTotal > 0 ? (int)(100.0 * status.BytesTransferred / status.BytesTotal) : 0;
-                        CallbackFreqPcts.Add(pct);
-                        CallbackFreqSeconds.Add((int)new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds());
                         break;
                 }
             }
@@ -159,9 +148,6 @@ namespace DODownloader
             lock (stateLock)
             {
                 CountDownloadCompletes = CountDownloadErrors = CountDownloadExtendedErrors = 0;
-                LastDownloadObj = null;
-                CallbackFreqPcts?.Clear();
-                CallbackFreqSeconds?.Clear();
                 LastDownloadStatus = new DO_DOWNLOAD_STATUS();
             }
             statusChangeEvent?.Reset();
