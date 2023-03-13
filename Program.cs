@@ -66,6 +66,7 @@ namespace DODownloader
             {
                 Console.WriteLine($"Download failed. Exception: hr: {ex.HResult:X}, {ex.Message}\n{ex.StackTrace}");
                 download?.Abort();
+                return 2;
             }
 
             return 0;
