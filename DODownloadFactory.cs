@@ -32,7 +32,7 @@ namespace DODownloader
         private IDODownload CreateDownload()
         {
             IDODownload download = null;
-            IDOManager manager = (IDOManager)PInvoke.GetComObject(Constants.CLSID_DOManager, Constants.IID_DOManager);
+            IDOManager manager = (IDOManager)PInvoke.GetComObject(Constants.CLSID_DeliveryOptimization, Constants.IID_DOManager);
             try
             {
                 manager.CreateDownload(out download);

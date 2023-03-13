@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -88,7 +87,8 @@ namespace DODownloader
             Marshal.FinalReleaseComObject(download);
         }
 
-        public void WaitForState(DODownloadState waitForState, int waitTimeSecs, DODownload download, DODownloadState[] bailoutStates = null)
+        public void WaitForState(DODownloadState waitForState, int waitTimeSecs, DODownload download,
+            DODownloadState[] bailoutStates = null)
         {
             const int pollingLoopIntervalMsecs = 3 * 1000;
 
@@ -129,14 +129,16 @@ namespace DODownloader
                 if (bailoutStates.Contains(status.State))
                 {
                     // Download reached one of the unexpected states
-                    throw new Exception($"{downloadId}: Hit unexpected {status.State} state while waiting for {waitForState} state. Error: 0x{status.Error:X} ExtendedError: 0x{status.ExtendedError:X}.");
+                    throw new Exception($"{downloadId}: Hit unexpected {status.State} state while waiting for {waitForState} state."
+                        + $" Error: 0x{status.Error:X} ExtendedError: 0x{status.ExtendedError:X}.");
                 }
 
                 var elapsedMs = (int)stopwatch.ElapsedMilliseconds;
                 if (elapsedMs >= totalWaitTime)
                 {
                     // timeout
-                    throw new TimeoutException($"{downloadId}: Download did not reach {waitForState} state in {waitTimeSecs} s. Error: 0x{status.Error:X} ExtendedError: 0x{status.ExtendedError:X}.");
+                    throw new TimeoutException($"{downloadId}: Download did not reach {waitForState} state in {waitTimeSecs} s."
+                        + $" Error: 0x{status.Error:X} ExtendedError: 0x{status.ExtendedError:X}.");
                 }
 
                 curWaitTime = Math.Min(pollingLoopIntervalMsecs, totalWaitTime - elapsedMs);

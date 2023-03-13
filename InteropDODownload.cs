@@ -8,7 +8,7 @@ namespace DODownloader
 {
     public class Constants
     {
-        public static readonly Guid CLSID_DOManager = new Guid("5b99fa76-721c-423c-adac-56d03c8a8007");
+        public static readonly Guid CLSID_DeliveryOptimization = new Guid("5b99fa76-721c-423c-adac-56d03c8a8007");
         public static readonly Guid IID_DOManager = new Guid("400E2D4A-1431-4C1A-A748-39CA472CFDB1");
     }
 

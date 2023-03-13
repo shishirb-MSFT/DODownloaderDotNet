@@ -1,15 +1,24 @@
 ﻿using System;
 using System.IO;
 
+// Sample code to showcase usage of Delivery Optimization client's COM API via C# Interop.
+// COM API is documented here: https://learn.microsoft.com/en-us/windows/win32/delivery_optimization/do-reference
+
 namespace DODownloader
 {
     internal class Program
     {
         static int Main(string[] args)
         {
+            // Example invocations:
+            //  > $url = "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/52fa8751-747d-479d-8f22-e32730cc0eb1"
+            // Full file streaming download: > .\DODownloader.exe --url $url
+            // Partial file streaming download: > .\DODownloader.exe --url $url --ranges 10,65536,131072,65536
+            // Full file download: > .\DODownloader.exe --url $url --output-file-path $env:TEMP\testfile.dat
             if (!Options.TryParseArgs(args, out Options options))
             {
-                Console.WriteLine("Usage: DODownloader.exe --url <url> [--output-file-path <path>] [--ranges <offset0,length0,offset1,length1,...>]");
+                Console.WriteLine("Usage: DODownloader.exe --url <url> [--output-file-path <path>]"
+                    + " [--ranges <offset0,length0,offset1,length1,...>]");
                 return 1;
             }
 

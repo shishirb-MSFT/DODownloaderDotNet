@@ -202,7 +202,7 @@ namespace DODownloader
         /// Wait until the download is in transferring state.
         /// </summary>
         /// <param name="waitTimeSecs">How long we should wait</param>
-        /// <param name="isFromPaused">Whether we started from a paused state. In that case, we won't bail out if the state is paused.</param>
+        /// <param name="isFromPaused">Whether we started from a paused state. If true, we won't bail out if the state is paused.</param>
         public void WaitUntilTransferring(int waitTimeSecs, bool isFromPaused = false)
         {
             Handler.WaitForState(DODownloadState.Transferring, waitTimeSecs, this,
