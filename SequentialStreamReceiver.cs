@@ -22,7 +22,7 @@ namespace DODownloader
             throw new NotImplementedException();
         }
 
-        public virtual void Write([MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] pv, uint cb, IntPtr pcbWritten)
+        public void Write([MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] pv, uint cb, IntPtr pcbWritten)
         {
             TotalBytesReceived += cb;
             ++TotalCallsReceived;

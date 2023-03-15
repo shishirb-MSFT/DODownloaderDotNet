@@ -36,7 +36,7 @@ namespace DODownloader
             try
             {
                 manager.CreateDownload(out download);
-                PInvoke.AllowImpersonation<IDODownload>(download, PInvoke.RPC_C_IMP.IMPERSONATE);
+                PInvoke.AllowImpersonation<IDODownload>(download, PInvoke.ImpersonationLevel.Impersonate);
             }
             finally
             {
