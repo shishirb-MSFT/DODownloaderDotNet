@@ -54,7 +54,7 @@
     <Compile Include="PInvoke.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SequentialDataStream.cs" />
+    <Compile Include="SequentialStreamReceiver.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
