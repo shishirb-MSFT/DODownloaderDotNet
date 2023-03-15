@@ -73,17 +73,6 @@ namespace DODownloader
         NonVolatile,                // [VT_BOOL] save download info to registry (default: FALSE)
     }
 
-    public enum DODownloadPropertyEx
-    {
-        UpdateId = 0,              // [VT_BSTR] internal update ID
-        CorrelationVector,         // [VT_BSTR] CV
-        DecryptionInfo,            // [VT_BSTR] decryption info [can't be read]
-        IntegrityCheckInfo,        // [VT_BSTR] PHF
-        IntegrityCheckMandatory,   // [VT_BOOL] PHF boolean
-        TotalSizeBytes,            // [VT_UI8] download size
-        TempLocalFileUsage,        // [VT_BOOL] temp local file usage vs. download filename (default is true)
-    }
-
     [StructLayoutAttribute(LayoutKind.Sequential)]
     public struct DO_DOWNLOAD_RANGE
     {
