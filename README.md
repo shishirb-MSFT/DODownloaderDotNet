@@ -4,7 +4,7 @@
     - File output and streaming output.
     - Full-file downloads and partial-file downloads (byte range requests).
     - Download status callbacks.
-    - Enumerate existing downloads. Filtering not implemented yet.
+    - Enumerate existing downloads. Filtering (optional) implemented only for Uri property.
 - Tested on Visual Studio 2022
 - Minimum required Windows OS version: Windows 10, version 1809 (10.0.17763.1)
 - More on Delivery Optimization: https://learn.microsoft.com/en-us/windows/deployment/do/

@@ -1,10 +1,12 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace DODownloader
 {
     internal class DODownloadFactory
     {
-        private string callerName;
+        private readonly string callerName;
         public DODownloadFactory(string callerName)
         {
             this.callerName = callerName;
@@ -29,10 +31,23 @@ namespace DODownloader
             return new DODownload(file, downloadObj);
         }
 
+        public List<IDODownload> EnumerateDownloads()
+        {
+            return GetDownloads(enumCategory: null);
+        }
+
+        // Enumerate downloads with filtering on a property value.
+        // DO client supports filtering on Id, Uri, ContentId, DisplayName and LocalPath properties.
+        public List<IDODownload> EnumerateDownloads(DODownloadProperty filterType, string filterKey)
+        {
+            var enumCategory = new DO_DOWNLOAD_ENUM_CATEGORY { Property = filterType, Value = filterKey };
+            return GetDownloads(enumCategory);
+        }
+
         private IDODownload CreateDownload()
         {
             IDODownload download = null;
-            IDOManager manager = (IDOManager)PInvoke.GetComObject(Constants.CLSID_DeliveryOptimization, Constants.IID_DOManager);
+            IDOManager manager = GetDOManager();
             try
             {
                 manager.CreateDownload(out download);
@@ -63,6 +78,57 @@ namespace DODownloader
             {
                 downloadObj.SetProperty(DODownloadProperty.TotalSizeBytes, file.SizeBytes);
             }
+        }
+
+        private List<IDODownload> GetDownloads(DO_DOWNLOAD_ENUM_CATEGORY? enumCategory)
+        {
+            var downloads = new List<IDODownload>();
+            IDOManager manager = GetDOManager();
+            var category = IntPtr.Zero;
+            try
+            {
+                if (enumCategory.HasValue)
+                {
+                    category = Marshal.AllocCoTaskMem(Marshal.SizeOf<DO_DOWNLOAD_ENUM_CATEGORY>());
+                    Marshal.StructureToPtr(enumCategory.Value, category, false);
+                }
+                manager.EnumDownloads(category, out IEnumUnknown list);
+                uint cFetched = 0;
+                do
+                {
+                    var objs = new object[1];
+                    list.Next(1, objs, ref cFetched);
+                    if (cFetched == 1)
+                    {
+                        downloads.Add((IDODownload)objs[0]);
+                    }
+                } while (cFetched > 0);
+            }
+            catch (COMException ce)
+            {
+                const int noSuchDownloads = unchecked((int)0x80D02005);
+                if (ce.HResult != noSuchDownloads)
+                {
+                    throw;
+                }
+            }
+            finally
+            {
+                if (category != IntPtr.Zero)
+                {
+                    Marshal.FreeCoTaskMem(category);
+                }
+                if (manager != null)
+                {
+                    Marshal.FinalReleaseComObject(manager);
+                }
+            }
+            return downloads;
+        }
+
+        private IDOManager GetDOManager()
+        {
+            return (IDOManager)PInvoke.GetComObject(Constants.CLSID_DeliveryOptimization, Constants.IID_DOManager);
         }
     }
 }

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 
 // Sample code to showcase usage of Delivery Optimization client's COM API via C# Interop.
 // COM API is documented here: https://learn.microsoft.com/en-us/windows/win32/delivery_optimization/do-reference
@@ -18,21 +20,19 @@ namespace DODownloader
             // Enumerate existing downloads: .\DODownloader.exe --enumerate
             if (!Options.TryParseArgs(args, out Options options))
             {
-                Console.WriteLine("Usage: DODownloader.exe --enumerate | --url <url> [--output-file-path <path>]"
+                Console.WriteLine("Usage: DODownloader.exe --enumerate [--url <url>] | --url <url> [--output-file-path <path>]"
                     + " [--ranges <offset0,length0,offset1,length1,...>]");
                 return 1;
             }
 
             if (options.Action == Options.Actions.EnumerateDownloads)
             {
-                return ExecEnumeration();
+                return ExecEnumeration(options.Url);
             }
-            else if (options.Action == Options.Actions.NewDownload)
+            else
             {
                 return ExecDownload(options);
             }
-
-            return 0;
         }
 
         class Options
@@ -40,7 +40,6 @@ namespace DODownloader
             public enum Actions
             {
                 None,
-                NewDownload,
                 EnumerateDownloads,
             }
 
@@ -80,7 +79,6 @@ namespace DODownloader
                         if ((i + 1) >= args.Length) return false;
                         if (string.IsNullOrWhiteSpace(args[i + 1])) return false;
                         options.Url = args[++i];
-                        options.Action = Actions.NewDownload;
                     }
                     else if (args[i].Equals("--output-file-path"))
                     {
@@ -110,7 +108,7 @@ namespace DODownloader
                         return false;
                     }
                 }
-                return (options.Action == Actions.NewDownload) || (options.Action == Actions.EnumerateDownloads);
+                return true;
             }
 
             private static DODownloadRanges ParseDownloadRanges(string arg)
@@ -130,7 +128,7 @@ namespace DODownloader
         {
             options.SetRangesIfEmpty();
 
-            var factory = new DODownloadFactory(callerName: "DODownloader App");
+            var factory = GetDODownloadFactory();
             var file = new DOFile(options.Url);
 
             DODownload download = null;
@@ -178,9 +176,53 @@ namespace DODownloader
             return 0;
         }
 
-        private static int ExecEnumeration()
+        // Enumerate existing downloads with an optionally filtering by URL.
+        // Future: Could support other filtering on other properties.
+        private static int ExecEnumeration(string filterUrl)
         {
+            var factory = GetDODownloadFactory();
+            List<IDODownload> downloads = (string.IsNullOrEmpty(filterUrl)) ?
+                factory.EnumerateDownloads() :
+                factory.EnumerateDownloads(DODownloadProperty.Uri, filterUrl);
+            Console.WriteLine($"Enumeration found {downloads.Count} download(s).");
+
+            uint i = 1;
+            foreach (var download in downloads)
+            {
+                download.GetProperty(DODownloadProperty.Id, out object id);
+                var url = (string)GetDownloadProperty(download, DODownloadProperty.Uri);
+                var outputFilePath = (string)GetDownloadProperty(download, DODownloadProperty.LocalPath);
+                Console.WriteLine($"{i++}: Download {id}");
+                if (url != null)
+                {
+                    Console.WriteLine($"\turl: {url}");
+                }
+                if (outputFilePath != null)
+                {
+                    Console.WriteLine($"\toutputFilePath: {outputFilePath}");
+                }
+                Console.WriteLine();
+            }
             return 0;
+        }
+
+        private static object GetDownloadProperty(IDODownload download, DODownloadProperty downloadProperty)
+        {
+            try
+            {
+                download.GetProperty(downloadProperty, out object value);
+                return value;
+            }
+            catch (COMException ce)
+            {
+                Console.WriteLine($"Get property failed with {ce.HResult:x}");
+                return null;
+            }
+        }
+
+        private static DODownloadFactory GetDODownloadFactory()
+        {
+            return new DODownloadFactory(callerName: "DODownloader App");
         }
     }
 }
