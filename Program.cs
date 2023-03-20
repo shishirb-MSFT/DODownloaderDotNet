@@ -108,7 +108,7 @@ namespace DODownloader
                         return false;
                     }
                 }
-                return true;
+                return (options.Action == Actions.EnumerateDownloads) || (options.Url != null);
             }
 
             private static DODownloadRanges ParseDownloadRanges(string arg)
